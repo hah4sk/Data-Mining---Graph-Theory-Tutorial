@@ -1,0 +1,539 @@
+---
+title: "What are Graphs, and How are They Used?"
+author: "Hussain Humadi"
+date: "April 23, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+Whether an engineer, statistician, scientist, etc, most people have likely seen an image like the following:
+
+<center>
+
+![<b>Figure 1: Basic Network</b>](Figures/SIMPLE-GRAPH.jpg)
+
+</center>
+
+
+This image represents a network of various <b><i>vertices</i></b> (the labeled circles) connected via <b><i>edges</i></b> (the lines connecting them). While many people will find this relatonship trivial, it opens up many different fields to explore, such as shortest path algorithms and searching(traversal) algorithms.  In addition, graphs, and the vertices and edges they are composed of, can be characterized by a multitude of different ways, such as connectedness, anomaly detection, clusters, etc.
+
+
+This tutorial assumes the reader has the following background:
+
+* High-level knowledge of data structures (Particularly <i>Queues</i> and <i>Stacks</i>)
+* A high-level exposure to <i>recursion</i> (not absolutely necessary)
+* Cursory exposure to graphs in other contexts not necessarily confined to mathematics/algorithms
+
+In this tutorial, the reader will:
+
+* Review some frequently-used terms in the field of graph theory
+* Gain an intuitive understanding of various graph-theory algorithms
+* Explore the ways these algorithms are applied in the field of data mining
+
+### Note to Reader
+
+This guide is for the person who may have been exposed to graph theory in the past, but never felt as though he/she gained a firm understanding of it. This guide serves as a comprehensive guide to many of the frequently discussed topics in graph theory, and hopefully creates a base for the reader, so that after reading this, they can dive deeper into the topics of their choosing through other resources.
+
+
+## Basic Terminology
+A graph G is defined by a set a <b><i>vertices</i></b> and <b><i>edges</i></b>
+G = (V,E) where:
+
+  * V (or V(G)) is a <i>set</i> of vertices
+  * E (or E(G)) is a <i>set</i> of edges
+
+
+#### Vertices 
+A vertex is a fundamental unit with which graphs are formed. They can used to help represent many different models, such as landmarks in a city, routers in an online network, pickup/dropoff locations for a delivery service, etc.\n
+
+Regardless of what they represent, an important concept for any vertex <i>v</i> is its <i>degree</i>, which is defined as the number of edges containing <i>v</i>. In other words, it is the number of edges "attached" to vertex <i>v</i>. Intuitively, a vertex with a high degree has many different connections to other parts of the network. Like our previous example, a router vertex with a high degree could mean that many other routers are connected to it, meaning that it manages a lot of online traffic. People managing these routers would then know that this router might require a higher bandwidth to maintain.\n
+
+<i>Degree</i> is but one way to measure a vertex's <i>Centrality</i>. Centrality is a general term used in graph theory to describe the relative importance of a vertex as part of the network. This is discussed more under the <b>Centrality</b> section
+
+#### Edges 
+An edge <i>e</i> is defined by the vertices that it connects. 
+For example, in Figure 1, e = (A,B) is the edge connecting vertices A and B
+
+Edges can be <b><i>directed</i></b>, meaning an edge <i>e</i> = (A,B) represents a path from vertex A to vertex B, but not vice versa,
+or <b><i>undirected</i></b>, meaning <i>e</i> = (A,B) represents both a path from vertex A to vertex B and from vertex B to vertex A (bidirectional)
+
+Edges can also be <b><i>weighted</i></b>, meaning that traversing them has an associated cost with it,
+or <b><i>unweighted</i></b>, meaning there is no cost. If a graph is unweighted, its edges tend to be given a unit weight of 1.
+
+#### Centrality 
+
+As stated previously, we use the term <i>centrality</i> to describe how important a vertex is in the network. Three common forms of centrality are the following:
+
+<b><i>Degree Centrality</i></b> measures importance based on how many edges are connected to the vertex. The more edges, the greater the centrality.
+
+<b><i>Closeness Centrality</i></b>  measures importance based on the distance between the vertex and all other vertices in the graph. This is measured by summing all the weights necessary to get from the vertex of interest to all the other vertices. The smaller this total distance, the greater the centrality.
+
+<b><i> Betweenness Centrality </i></b> measures how many shortest paths cross through this vertex. The more vertices that need a particular vertex to traverse their shortest paths, the greater that vertex's centrality.
+
+<b><i> Eigenvector Centrality </i></b> measures a vertex's importance based on how many other important vertices it is connected to. Because this measure is recursive in nature, vertices are given an initial "base" importance, with which the rest of the eigenvector centrality is computed. THe more important vertices a vertex is connected to, the greater that vertex's centrality.
+
+
+## Representations of Graphs
+
+Visually, we know what a graph looks like. However, it's also important to know how to store this graph in a compact way such that it can be parsed/manipulated, and it can be translated back into its visual representation if necessary. For this, there are 2 common ways of doing so:
+
+### Adjacancy Matrix
+
+An <b><i>Adjacency Matrix</i></b> is an NxN 2D matrix that indicates whether any 2 vertices in the graph are connected to one another. N is equal to |V(G)|, or the number of vertices in the graph.
+
+The following figure shows an example of an adjacency matrix for an <i>unweighted</i> graph:
+
+<center>
+
+![<b>Figure 2: Adjacency Matrix - Unweighted Graph</b>](Figures/Adjacency-Matrix-Unweighted.JPG)
+
+</center>
+
+A value of '1' indicates that the vertices are connected by an edge, while a value of '0' indicates there exists no edge between the vertices.
+
+*Note: Notice that, because the graph is <i>undirected</i>, the matrix is symmetric about the diagonal. In order to save space, we could simply use the upper diagonal to store our graph.
+
+
+
+The following example figure shows an example of an adjacency matrix for a <i>weighted</i> graph:
+
+<center>
+
+![<b>Figure 3: Adjacency Matrix - Weighted Graph</b>](Figures/Adjacency-Matrix-Weighted.JPG)
+
+</center>
+
+As you can see, this is basically the same as with the unweighted graph, except the cells show the weight of the cost of traversing the edge instead of a simple binary value (1 or 0)
+
+### Edge List
+
+If you look at the Adjacency Matrices, you might have noticed that they have the potential to waste a lot of space. If there aren't many edges relative to the number of vertices, the adjacency matrix would be filled with a lot of 0's. It would save space if we could just somehow only show the vertices that are connected, and then we can infer which vertices are not.
+
+we can do this by using an <b><i>edge list</i></b>. An edge list is a 1-Dimensional list of size N, where N = |V(G)|, and each element at index i is a list of other indices for each vertex adjacent to that vertex i.
+
+The following figure shows an example of an edge list for an <i>unweighted</i> graph:
+
+<center>
+
+![<b>Figure 4: Edge List Example</b>](Figures/Edge-List.jpg)
+
+</center>
+
+Using the edge list, each "row" only contains values for which an edge exists between the index <i>i</i> and that specific vertex. For example, index 2 saves space by not having to include values for vertices 1,3, or 4, because vertex 2 is only connected to vertex 0.
+
+## Paths
+A <b><i>path</i></b> is a sequence of edges which join a sequence of vertices. 
+For example, the path <i>p</i> = {(A, B), (B, C), (C, E)} earlier in Figure 1 denotes the following path:
+
+<center>
+
+![<b>Figure 5: Path Example</b>](Figures/SIMPLE-GRAPH-PATH.jpg)
+
+</center>
+
+In many applications of graphs, paths are used to model a sequence of steps between two entities/states, where each
+step across an edge carries with it a cost, or <i>weight</i>. These graphs are called <i>weighted</i> graphs, and the corresponding graphs without these costs are called <i>unweighted</i>. Edge weights become very important when trying to find the <i>shortest paths</i> between two given vertices. This is discussed in the next section.
+
+
+## Types of Paths
+
+There are different types of paths that we can be concerned about. The concepts of paths and weights open up a lot of room for research, especially when it comes to <i>shortest paths</i>.  A shortest path between vertices <i>a</i> and <i>b</i> is defined as the path between two vertices that results in the smallest cost possible. This is discussed later under <b>Traversals</b>
+
+A <b><i>cycle</i></b> is a nonempty path in a graph G that has the same start and end vertex. Think of a "loop" or "circular" path<br>
+A <b><i>simple path</i></b> is a path that does not repeat any vertices.  In other words, it is a path without any cycles<br>
+An <b><i>Euler Path</i></b> is a path that contains every edge of a graph G exactly once. This basically represents a traversal through the entire graph, where every edge is used just once.
+
+## Traversals
+
+There are two common ways of traversing graphs: <b><i>Depth-First Traversal</i></b> and <b><i>Breadth-First Traversal</i></b>
+
+Starting at any given vertex, these traversals are defined based on which vertices are prioritized when it comes to the order of traversal. For Breadth-First Traversal, all of the root's adjacent vertices are first explored, followed by the networks of each adjacent vertex. For Depth-First Traversal, for each vertex adjacent to the root, the algorithm will recursively explore all the vertices connected to that adjacent vertex, before moving on to explore all the other vertices adjacent to the root. 
+
+<center>
+
+![<b>Figure 6: Breadth-First vs Depth-First Traversal</b>](Figures/BreadthVSDepth.jpg)
+
+</center>
+
+
+### Recursive Implementations
+
+#### Breadth-First
+
+The following pseudocode gives a recursive implementation of breadth-first traversal:
+```{r, eval = FALSE}
+Breadth-First-Search(root){
+  for each vertex adjacent to root:
+    mark vertex as visited
+  for each vertex adjacent to root:
+    Breadth-First-Search(vertex)
+}
+```
+The above code will first visit all vertices immediately adjacent to root, before recursively calling <i>Breadth-First-Search()</i> on each of those adjacent vertices
+
+
+#### Depth-First
+
+The following pseudocode gives a recursive implementation of depth-first traversal:
+```{r, eval = FALSE}
+Depth-First-Search(root){
+  for each vertex adjacent to root:
+    mark vertex as visited
+    Depth-First-Search(vertex)
+}
+```
+The above code differs from <i>Breadth-First-Search()</i> in that as soon as a vertex is visited, we recursively call <i>Depth-First-Search</i> on it (going "deeper" into the network), whereas with Breadth-First-Search(), all neighbors of <i>root</i> are visited before further traversals occur.  
+
+
+### Iterative Implementations (using Stack and Queue)
+
+The Breadth-First and Depth-First traversals can both be implemented iteratively (without recursion) with the use of a couple of handy data structures. Namely, a <i>Queue</i> and <i>Stack</i>, respectively. 
+
+#### Breadth-First
+
+The following gives an iterative implementation of breadth-first traversal, using a queue to manage the order of vertices traversed:
+
+```{r, eval = FALSE}
+Breadth-First-Search(source s):
+
+  q = Queue()
+  q.add(s)
+  mark s as visited
+  
+  while q is not empty:
+    v = q.dequeue()
+    for every vertex adjacent to v:
+      if vertex is not marked as visited:
+        q.add(vertex)
+        mark vertex as visited
+
+```
+The algorithm starts with only the source vertex <i>s</i> in the queue, when the traversal begins. The algorithm then continuously removes items from the front (dequeues), and adds each of those vertices' adjacent vertices to the back of the queue. This intuitively makes sense for <i>breadth</i> search because the queue follows a FIFO ordering, where vertices that are added earlier (the immediately adjacent ones) are "in front" of those deeper in the graph
+
+
+The following gives an iterative implementation of depth-first traversal, using a stack to manage the order of vertices traversed:
+
+```{r, eval = FALSE}
+Depth-First-Search(source s):
+  
+  stck = Stack()
+  stck.add(s)
+  mark s as visited
+  
+  while stck is not empty:
+    v = stck.pop()
+    for every vertex adjacent to v:
+      if vertex is not marked as visited:
+        stck.push(vertex)
+        mark vertex as visited
+```
+The algorithm starts with only the source vertex <i>s</i> in the stack, when the traversal begins. The algorithm then continuously removes items from the front (pops) and adds each of those vertices' adjacent vertices to the top of the stack. The structure of this algorithm is nearly identical to that of breadth-first. However, because the stack uses a LIFO ordering, vertices that are added to the stack later in the traversal are actually visited earlier. Therefore, vertices that would be at the "front" of the queue in a breadth-first search would effectively be in the "back" of the stack, due to the contrasting natures of each data structure.
+
+
+
+## Shortest Path Algorithms - Dijkstra's
+
+Oftentimes, when looking at a group of vertices in a network, we are curious about the quickest way to get from one vertex to another. A very commonly used algorithm for this is called <b><i>Dijkstra's Algorithm</i></b> This algorithm, given a directed, weighted graph and a source vertex <i>s</i>, can calculate the shortest paths from that vertex <i>s</i> to every other vertex in the graph. <br>
+
+The algorithm starts by using what is called a <b><i>Distance Table</b></i>, which keeps track of the current shortest path for each vertex in the graph. It starts by initializing the distance to the source vertex to 0 (since that is where we begin) and the distance of all other nodes to infinity (the max value). Then, using the edges of the vertices whose shortest distances are known, the algorithm greedily finds the next vertex with the shortest distance, and updates its corresponding value in the distance table as well.
+
+<center>
+
+![<b>Figure 7: Dijkstra's Algorithm</b>](Figures/dij.jpg)
+
+</center>
+
+The Above diagram marks black vertices as those that have been added to the solution set (and consequently have their shortest paths confirmed), and gray vertices as the next vertex to be added to the solution set. Gray edges are those that are "known" to the algorithm, and have been used to update the distance table wherever possible. <br>
+
+The following is pseudocode for an implementation of Dijkstra's Algorithm:
+
+```{r, eval=FALSE}
+Dijkstras-Algorithm(G, s):
+  T = init-table() # Set dist of all vertices to infinity
+  S = {} # empty set
+  Q = G(V) # set of undiscovered vertices
+  init dist of source s to 0
+  
+  while Q is not empty:
+    u = Q.get(vertex with shortest distance)
+    add u to solution set S
+    
+    for every vertex v adjacent to u:
+      update distance table T where possible
+
+```
+
+The algorithm maintains a solution set <i>S</i>, which contains the vertices whose shortest path distances have been found. It pulls these vertices from the set <i>Q</i>, which contains the vertices whose shortest path distances have not been found. Every iteration, we find the vertex in <i>Q</i> that has the smallest distance value in the distance table, and add it to <i>S</i> Once a vertex has been added to the solution set, we then update the distance table for every vertex adjacent to it wherever possible. 
+
+## Shortest Path Algorithms - Bellman Ford
+Another way to find the shortest paths is to use the <b><i>Bellman-Ford</i></b> algorithm. Like Djikstra's, this algorithm initializes the shortest paths of all vertices to infinity, and then decreases it to the true shortest path value. It does this by <i>"relaxing"</i> edges. Relaxation starts by examining an edge, say <i>e</i> = (A, B). If the current distance of A, plus the weight of crossing edge <i>e</i> (to get to B) is less than current distance value of B, we update B's value to A's distance value plus the cost of crossing edge <i>e</i>.
+
+Using this concept of relaxation, the Bellman-Ford algorithm iterates through all the edges a total of |V| times (|V| = the number of vertices in the graph), relaxing wherever possible.
+
+The following is a pseudocode implementation of the Bellman-Ford Algorithm:
+
+```{r, eval=FALSE}
+Bellman-Ford(G):
+  For every vertex in V(G):
+    init distance to infinity
+
+  For every vertex in V(G):
+    for every edge = (A,B) in E(G):
+      relax(edge, A, B)
+```
+
+While we wont get into a formal proof in this guide, we can prove that the Bellman-Ford algorithm terminates with all of the correct shortest path distances. Intuitively, we can argue that iterating over all the edges and relaxing wherever possible will result in at least the first traversal of any shortest path being correctly found. Because a shortest path can only have at max |V(G)| vertices, we would only need to repeat this process a maximum of <i>|V(G)|-1</i> more times to get the next optimal traversals
+
+## Trees
+
+<b><i>Trees</i></b> are a type of graph, and are defined as <i>"an undirected graph in which any two vertices are connected by exactly one path"</i>
+
+THe following is an example of what a typical tree might look like:
+
+<center>
+
+![<b>Figure 8: Basic Tree Example</b>](Figures/BasicTree.jpg)
+
+</center>
+
+As you can see, every vertex has exactly one path that connects it to every other vertex in the graph.
+
+A <b><i>Minimum Spanning Tree</i></b> is a subset of the edges of another graph G, such that all the vertices of the original graph are connected, but the sum of all the edges in the minimum spanning tree is at a minimum 
+
+
+<center>
+
+![<b>Figure 9: Graph and Corresponding Minimum Spanning Tree</b>](Figures/MinimumSpanningTree.jpg)
+
+</center>
+
+Looking at the above graph, the green edges indicate the minimum spanning tree needed to connect all the vertices in the graph with an overall minimum edge cost.
+
+There are two common ways of finding Minimum Spanning Trees of any given input graph G. These algorithms are <b><i>Kruskals' Algorithm</i></b> and <b><i>Prim's Algoirithm</i></b>.
+Both algorithms work to build a set of edges that satisfy the requirements of a Minimum Spanning Tree
+
+### Kruskal's Algorithm
+
+Kruskal's Algorithm starts by first sorting all the edges of the input graph <b>G</b> in order of increasing weight. It then iterates over the sorted edges, adding them to the solution set of edges if one or more of the vertices in the edge is not already connected to in the solution set.
+
+Below is a pseudocode implementation of Kruskal's Algorithm:
+
+```{r, eval=FALSE}
+Kruskals-Algorithm(G):
+  MST = {} # Empty Set
+  Edges = sort(V(G))
+  for every edge e=(u,v) in Edges:
+    if(u or v not in MST):
+      MST.add(e)
+
+```
+
+Kruskal's Algorithm works by "disjointly" adding edges to the MST, joining them together as the algorithm iterates over all the edges. By the time the algorithm terminates, all the necessary edges are connected together to form the final tree.
+
+### Prim's Algorithm
+
+Prim's algorithm behaves differently than Kruskal's while accomplishing the same task. Instead of disjointly creating separate trees, it starts from an arbitrary source vertex and tries to grow the MST outward. \n
+The algorithm intializes the distance to a source vertex to 0, and all others to infinity. Each iteration, the algorithm extracts the vertex with the current shortest distance, and updates the shortest distances of all vertices adjacent to the extracted vertex, wherever possible.
+
+Below is a pseudocode implementation of Prim's Algorithm:
+
+```{r, eval=FALSE}
+Prims-Algorithm(G):
+  MST = {} # Empty Set
+  
+  Init all V(G) distances to infinity
+  Init distance of source s to 0
+  
+  for every vertex in V(G):
+    u = extract-min(V(G))
+    add corresponding edge to MST
+    for every v adjacent to u:
+      update shortest path to v where possible
+    
+
+```
+
+## Binary Search Trees
+
+Another type of tree of significance is <i>Binary Trees</i> (if you have taken a Data Structures, you may have already covered this). Binary trees are graphs where every vertex can have at most 2 adjacent vertices, typically called <i>left</i> and <i>right</i> children. Because it is a data structure, binary trees hold values with each one of its vertices (can be integers, strings, objects, etc). The graphs in Figure 1 are both examples of binary trees, where each vertex holds a character value ('A','B','C', etc).
+
+A <i>Binary <b>Search</b> Tree</i> is a Binary Tree that follows specific rules with its left and right children:
+
+* For every vertex in the tree, the following must be true:
+    + The value of the left child must be less than that of the root, using the comparator operator for that data type
+    + The value of the right child must be greater than that of the root, using the comparator operator for that data type
+
+The following is an example of a Binary Search Tree of Integers:
+
+<center>
+
+![<b>Figure 10: Binary Search Tree</b>](Figures/BinarySearchTree.jpg)
+
+</center>
+
+### Advantages
+
+Trees are a useful form of graphs in that they typically allow for a quicker search-time for other vertex Starting from the <i>root</i> (the uppermost vertex), we percolate left or right depending on how large/small the value of our vertex is relative to our target value.
+
+The figure below shows an example of a searching sequence on a binary search tree where the target value is 4: 
+<center>
+
+![<b>Figure 11: Searching Through a Binary Search Tree</b>](Figures/Binary-Search-Tree-SearchExample.jpg)
+
+</center>
+
+As you can see, the algorithm starts by looking at the root value, 8. Because this value is bigger than the target, the target would have to be in the root's left subtree if it existed in the tree at all. So, the algorithm then looks at value at the root of the left subtree, 3. Because this value is less than the target, the target would have to be in this root's right subtree if it existed in the tree at all. The same process is repeated with the value of "6" before the target is finally found in 6's left subtree.
+
+This algorithm saves a lot of time, since it did not have to check every single value in the tree to determine whether or not the target was present. Indeed, the algorithm was able to skip checking 10, 1, 14, and 13. While this may not be much on a smaller tree, the difference is magnified as the number of elements in a tree get larger and larger. This is because, with each check, the search space is essentially halved (in a balanced tree).
+
+In the previous example, when moving from the root value of 8 to the left, 8's entire right subtree was rightfully ignored. This then kept repeating until the target was found. However, if we were storing these numbers in a list/array, we would have to check every single value to determine whether or not our target value existed. Without getting into the specifics, we can show that the search time for a binary search tree grows logarithmically (in a balanced tree), which is much better than the linear search time of an array/list.
+
+## Applications
+
+The notions of <b><i>vertices</i></b> and <b><i>edges</i></b> can be applied to a variety of network-related problems. One common example can be seen when examing social networks on social-media sites. Any website that has a notion of "friending", "following", or otherwise linking accounts, can be modeled in this way:
+
+<center>
+
+![<b>Figure 12: Visualization of an HSG Social Network, an Organization for Health Policy/Systems</b>](Figures/Social-Network-Analysis.jpg)
+
+</center>
+
+The above example depicts each organization member as a vertex, with edges showing a connection between accounts. The image also uses vertex size to visualize the <i>centrality</i> of the vertex. Vertices that are larger have more connections, making them more "important" and "central" members of the network.
+
+This analysis can be done using R, with a few useful packages. Below we'll go through a basic walkthrough on how to extract and analyze useful information from a graph like this, using R to help manipulate the data
+
+
+### Getting the data
+
+The data we'll be working with is called the <b><i>Kite</i></b> dataset, which represents a fictional social network with ten actors. This graph is interesting in that it is the smallest graph where the vertices with the greatest degree, closeness, and betweenness are all different.
+
+
+We start by first getting the necessary libraries, and then loading in the data:
+
+```{r, eval=TRUE, message=FALSE}
+
+library(tidyverse) # general useful libraries
+library(igraphdata) # contains datasetse
+library(igraph) # useful graph manipulation functions
+
+data(kite) # load in kite data
+```
+
+We can get both the list of edges and vertices using <i>igraph</i>:
+
+```{r, eval=TRUE, message=FALSE}
+edges = E(kite) # applies 'E()' to graph of kite to get edges
+vertices = V(kite) # applies 'V()' to graph of kite to get vertices
+```
+
+
+### Visualizing
+
+We can display the graph like so:
+
+```{r, eval=TRUE}
+plot(kite,
+layout=layout_with_fr(kite), # determines coordinates of vertices
+vertex.size = 20, # vertex size (how big to draw them)
+vertex.color="lightgrey", # color of vertices
+edge.width=E(kite)$weight) # edge weights
+```
+
+We can also get the minimum spanning tree by simply running <i>mst()</i>, and then plotting like we did before:
+
+```{r, eval=TRUE}
+mst = mst(kite)
+plot(
+  mst,
+  layout=layout_with_fr(kite),
+  vertex.size = 20,
+  vertex.color="lightgrey",
+  edge.width=E(kite)$weight
+)
+```
+
+### Depth-First & Breadth-First Traversals
+
+We can print out the Depth-First and Breadth-First traversals of the <i>Kite</i> dataset:
+
+```{r, eval=TRUE}
+
+# get the depth-first object
+dfs = dfs(kite, root=1, neimode="all", unreachable = TRUE, order = TRUE)
+# results contained in 'order' attribute
+dfs$order
+
+#get the breadth-first object
+bfs = bfs(kite, root=1, neimode="all", unreachable = TRUE, order = TRUE)
+#results contained in 'order' attribute
+bfs$order
+
+```
+
+### Centrality 
+
+We can quickly capture the centralities of each vertex, using the different forms of centrality discussed earlier:
+
+```{r, eval=TRUE}
+
+# returns the degrees of all vertices
+degree = degree(kite)
+
+# returns the betweenness of all vertices
+betweenness = centr_betw(kite)$res
+
+# returns the "closeness" of all vertices
+closeness = centr_clo(kite)$res
+
+# returns the eigen centrality of all vertices
+eigen = eigen_centrality(kite)$res
+
+```
+Each of the above functions returns a list <i>res</i> where <i>res[i]</i> indicating the corresponding centrality score for that vertex <i>i</i>.\n
+
+<b>*Note</b>: To get the relative centrality, the result can simply be dvided by <i>sum(res)</i>
+
+### Shortest Paths
+
+We can also use the <i>igraph</i> library to find the shortest paths from a starting vertex:
+
+```{r, eval=TRUE}
+
+distances(kite, mode = "all", algorithm = "dijkstra") # Uses Dijkstra's Algorithm to return distance table
+
+paths = all_shortest_paths(kite, from=V(kite), mode = "all") # Gives all shortest paths from A to rest of the graph
+
+# Some examples
+paths$res[3]
+paths$res[8]
+
+```
+
+
+The output of <i>"distances()"</i> returns a 2D distance table where <i>res[i][j]</i> gives the shortest path length from vertex <i>i</i> to vertex <i>j</i>. Because this graph is undirected, the distance table is symmetric about the diagonal. This is because the shortest path to get from vertex <i>i</i> to vertex <i>j</i> is the same as that to get from vertex <i>j</i> to vertex <i>i</i>. Additionally, because this graph is unweighted, the cost is equal to the number of edges needed to be crossed (assuming a unit weight of 1 for each edge).
+
+The output of <i>"all_shortest_paths()"</i> consists of a list <i>res</i>, where <i>res[i]</i> contains the path taken to get from the source vertex to a destination vertex. By default, vertex <i>A</i> is the source. The above example prints out paths to get to vertices 'C' and 'G', respectively.
+
+
+## References
+
+[1] Cormen, T., Leiserson, C., Rivest, R. and Stein, C. (n.d.). Introduction to algorithms.
+
+[2] Joshi, V. (2017). A Gentle Introduction To Graph Theory. [online] Medium. Available at: https://medium.com/basecs/a-gentle-introduction-to-graph-theory-77969829ead8 [Accessed 1 May 2019].
+
+[3] Mathcs.emory.edu. (2019). [online] Available at: http://www.mathcs.emory.edu/~cheung/Courses/171/Syllabus/11-Graph/prim2.html [Accessed 30 April 2019].
+
+[4] GeeksforGeeks. (2019). Applications of Minimum Spanning Tree Problem - GeeksforGeeks. [online] Available at: https://www.geeksforgeeks.org/applications-of-minimum-spanning-tree/ [Accessed 20 Apr. 2019].
+
+[5] Knezovich, J. (2019). Research methods for people-centred health systems: Social network analysis. [online] Future Health Systems. Available at: http://www.futurehealthsystems.org/blog/2014/10/1/people-centred-health-systems-research-methods [Accessed 1 May 2019].
+
+[6] En.wikipedia.org. (2019). Binary search algorithm. [online] Available at: https://en.wikipedia.org/wiki/Binary_search_algorithm [Accessed 29 Apr. 2019].
+
+[7] Commons.wikimedia.org. (2019). File:Binary search tree search 4.svg - Wikimedia Commons. [online] Available at: https://commons.wikimedia.org/wiki/File:Binary_search_tree_search_4.svg [Accessed 29 Apr. 2019].
+
+[8] Mishra, N. (2019). Representation of Graphs: Adjacency Matrix and Adjacency List - The Crazy Programmer. [online] The Crazy Programmer. Available at: https://www.thecrazyprogrammer.com/2014/03/representation-of-graphs-adjacency-matrix-and-adjacency-list.html [Accessed 2 May 2019].
